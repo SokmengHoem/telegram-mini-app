@@ -1,57 +1,62 @@
 import { useEffect, useState } from "react";
 import "./App.css";
+import {
+  authenticateTelegram,
+  type TelegramAuthResponse,
+} from "./services/auth.service";
 
 function App() {
+  const [user, setUser] = useState<TelegramAuthResponse["user"] | null>(null);
   const [isTelegram, setIsTelegram] = useState(false);
-  const [firstName, setFirstName] = useState("");
+  const [status, setStatus] = useState("Checking Telegram...");
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
 
-    if (!webApp) return;
+    if (!webApp) {
+      setStatus("Browser preview mode");
+      return;
+    }
 
     webApp.ready();
     webApp.expand();
-
     setIsTelegram(true);
-    setFirstName(webApp.initDataUnsafe.user?.first_name ?? "");
+
+    if (!webApp.initData) {
+      setStatus("Telegram authentication data is missing.");
+      return;
+    }
+
+    authenticateTelegram(webApp.initData)
+      .then((result) => {
+        setUser(result.user);
+        setStatus("Authenticated successfully");
+      })
+      .catch(() => {
+        setStatus("Authentication failed. Please reopen the Mini App.");
+      });
   }, []);
 
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-8 text-gray-900">
       <div className="mx-auto max-w-2xl">
-        <header className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight">Task Manager</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Task Manager</h1>
 
-          {isTelegram ? (
-            <p className="mt-2 text-sm text-gray-600">
-              Welcome{firstName ? `, ${firstName}` : ""}!
-            </p>
-          ) : (
-            <p className="mt-2 text-sm text-gray-500">
-              Running in browser preview mode.
-            </p>
-          )}
-        </header>
+        <p className="mt-3 text-sm text-gray-600">{status}</p>
 
-        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">My Tasks</h2>
-
-            <button
-              type="button"
-              className=" rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              + Add Task
-            </button>
-          </div>
-
-          <div className="mt-6 rounded-lg border border-dashed border-gray-300 px-4 py-10 text-center">
-            <p className="text-sm text-gray-500">
-              Your tasks interface will be built here.
-            </p>
-          </div>
-        </section>
+        {isTelegram && user && (
+          <section className="mt-6 rounded-xl border bg-white p-5">
+            <h2 className="text-lg font-semibold">
+              Welcome, {user.firstName}!
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">Telegram ID: {user.id}</p>
+            {user.username && (
+              <p className="text-sm text-gray-600">
+                Username: @{user.username}
+              </p>
+            )}
+          </section>
+        )}
       </div>
     </main>
   );
