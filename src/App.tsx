@@ -32,8 +32,8 @@ function App() {
         setUser(result.user);
         setStatus("Authenticated successfully");
       })
-      .catch(() => {
-        setStatus("Authentication failed. Please reopen the Mini App.");
+      .catch((error: unknown) => {
+        setStatus(error instanceof Error ? error.message : "Authentication failed. Please reopen the Mini App.");
       });
   }, []);
 
